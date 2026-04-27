@@ -1,0 +1,674 @@
+openapi: 3.0.3
+info:
+  title: Salario Claro API
+  version: 0.2.0
+  description: API for Brazilian payroll deduction simulations.
+servers:
+  - url: http://localhost:8080/api
+tags:
+  - name: Health
+  - name: Payroll
+  - name: Simulations
+  - name: Tax Rules
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
+
+  /payroll/calculate:
+    post:
+      tags: [Payroll]
+      summary: Calculate payroll without saving
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalculatePayrollRequest'
+            example:
+              gross_salary: 5000
+              dependents: 0
+              transport_discount: 100
+              meal_discount: 250
+              health_plan_discount: 300
+              other_discounts: 50
+              calculation_year: 2026
+      responses:
+        '200':
+          description: Payroll calculation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayrollCalculationResult'
+              example:
+                gross_salary: 5000
+                discounts:
+                  inss: 501.51
+                  irrf: 336.67
+                  transport: 100
+                  meal: 250
+                  health_plan: 300
+                  other: 50
+                irrf_base: 4498.49
+                total_discounts: 1538.18
+                net_salary: 3461.82
+                effective_rate: 0.307636
+                calculation_year: 2026
+                calculation_steps:
+                  - step: INSS
+                    output:
+                      amount: 501.51
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /payroll/compare:
+    post:
+      tags: [Payroll]
+      summary: Compare two payroll scenarios without saving
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComparePayrollRequest'
+            example:
+              first:
+                gross_salary: 4500
+                dependents: 0
+                transport_discount: 0
+                meal_discount: 0
+                health_plan_discount: 0
+                other_discounts: 0
+              second:
+                gross_salary: 5200
+                dependents: 0
+                transport_discount: 0
+                meal_discount: 0
+                health_plan_discount: 0
+                other_discounts: 0
+              calculation_year: 2026
+      responses:
+        '200':
+          description: Payroll comparison result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayrollComparisonResponse'
+              example:
+                first:
+                  gross_salary: 4500
+                  discounts:
+                    inss: 431.51
+                    irrf: 239.92
+                    transport: 0
+                    meal: 0
+                    health_plan: 0
+                    other: 0
+                  irrf_base: 4068.49
+                  total_discounts: 671.43
+                  net_salary: 3828.57
+                  effective_rate: 0.149207
+                  calculation_year: 2026
+                  calculation_steps: []
+                second:
+                  gross_salary: 5200
+                  discounts:
+                    inss: 529.51
+                    irrf: 375.65
+                    transport: 0
+                    meal: 0
+                    health_plan: 0
+                    other: 0
+                  irrf_base: 4670.49
+                  total_discounts: 905.16
+                  net_salary: 4294.84
+                  effective_rate: 0.174069
+                  calculation_year: 2026
+                  calculation_steps: []
+                difference:
+                  gross_salary: 700
+                  net_salary: 466.27
+                  total_discounts: 233.73
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /simulations:
+    get:
+      tags: [Simulations]
+      summary: List saved payroll simulations
+      responses:
+        '200':
+          description: Paginated simulations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayrollSimulationCollection'
+    post:
+      tags: [Simulations]
+      summary: Calculate and save a payroll simulation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoreSimulationRequest'
+            example:
+              title: April salary
+              gross_salary: 5000
+              dependents: 0
+              transport_discount: 100
+              meal_discount: 250
+              health_plan_discount: 300
+              other_discounts: 50
+              calculation_year: 2026
+      responses:
+        '201':
+          description: Saved payroll simulation
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PayrollSimulation'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /simulations/{id}:
+    get:
+      tags: [Simulations]
+      summary: Show a saved payroll simulation
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Saved payroll simulation
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/PayrollSimulation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Simulations]
+      summary: Delete a saved payroll simulation
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Simulation deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteResponse'
+              example:
+                message: Simulation deleted successfully.
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tax-rules:
+    get:
+      tags: [Tax Rules]
+      summary: List tax rules with brackets
+      parameters:
+        - in: query
+          name: year
+          schema:
+            type: integer
+            example: 2026
+          required: false
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [INSS_EMPLOYEE, IRRF_MONTHLY]
+            example: IRRF_MONTHLY
+          required: false
+      responses:
+        '200':
+          description: Paginated tax rules
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaxRuleCollection'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /tax-rules/{id}:
+    get:
+      tags: [Tax Rules]
+      summary: Show one tax rule with brackets
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Tax rule
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: '#/components/schemas/TaxRule'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    Id:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationError'
+          example:
+            message: The gross salary field is required.
+            errors:
+              gross_salary:
+                - The gross salary field is required.
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            message: Not Found
+
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: ok
+
+    PayrollInput:
+      type: object
+      required: [gross_salary]
+      properties:
+        gross_salary:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1000000
+          example: 5000
+        dependents:
+          type: integer
+          minimum: 0
+          maximum: 20
+          nullable: true
+          example: 0
+        transport_discount:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1000000
+          nullable: true
+          example: 100
+        meal_discount:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1000000
+          nullable: true
+          example: 250
+        health_plan_discount:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1000000
+          nullable: true
+          example: 300
+        other_discounts:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1000000
+          nullable: true
+          example: 50
+
+    CalculatePayrollRequest:
+      allOf:
+        - $ref: '#/components/schemas/PayrollInput'
+        - type: object
+          required: [gross_salary, calculation_year]
+          properties:
+            calculation_year:
+              type: integer
+              minimum: 2026
+              maximum: 2100
+              example: 2026
+
+    StoreSimulationRequest:
+      allOf:
+        - $ref: '#/components/schemas/CalculatePayrollRequest'
+        - type: object
+          properties:
+            title:
+              type: string
+              nullable: true
+              maxLength: 120
+              example: April salary
+
+    ComparePayrollRequest:
+      type: object
+      required: [first, second, calculation_year]
+      properties:
+        first:
+          $ref: '#/components/schemas/PayrollInput'
+        second:
+          $ref: '#/components/schemas/PayrollInput'
+        calculation_year:
+          type: integer
+          minimum: 2026
+          maximum: 2100
+          example: 2026
+
+    PayrollDiscounts:
+      type: object
+      required: [inss, irrf, transport, meal, health_plan, other]
+      properties:
+        inss:
+          type: number
+          format: float
+          example: 501.51
+        irrf:
+          type: number
+          format: float
+          example: 336.67
+        transport:
+          type: number
+          format: float
+          example: 100
+        meal:
+          type: number
+          format: float
+          example: 250
+        health_plan:
+          type: number
+          format: float
+          example: 300
+        other:
+          type: number
+          format: float
+          example: 50
+
+    CalculationStep:
+      type: object
+      required: [step, output]
+      properties:
+        step:
+          type: string
+          example: INSS
+        output:
+          type: object
+          additionalProperties: true
+
+    PayrollCalculationResult:
+      type: object
+      required:
+        - gross_salary
+        - discounts
+        - irrf_base
+        - total_discounts
+        - net_salary
+        - effective_rate
+        - calculation_year
+        - calculation_steps
+      properties:
+        gross_salary:
+          type: number
+          format: float
+          example: 5000
+        discounts:
+          $ref: '#/components/schemas/PayrollDiscounts'
+        irrf_base:
+          type: number
+          format: float
+          example: 4498.49
+        total_discounts:
+          type: number
+          format: float
+          example: 1538.18
+        net_salary:
+          type: number
+          format: float
+          example: 3461.82
+        effective_rate:
+          type: number
+          format: float
+          example: 0.307636
+        calculation_year:
+          type: integer
+          example: 2026
+        calculation_steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/CalculationStep'
+
+    PayrollComparisonResponse:
+      type: object
+      required: [first, second, difference]
+      properties:
+        first:
+          $ref: '#/components/schemas/PayrollCalculationResult'
+        second:
+          $ref: '#/components/schemas/PayrollCalculationResult'
+        difference:
+          type: object
+          required: [gross_salary, net_salary, total_discounts]
+          properties:
+            gross_salary:
+              type: number
+              format: float
+              example: 700
+            net_salary:
+              type: number
+              format: float
+              example: 466.27
+            total_discounts:
+              type: number
+              format: float
+              example: 233.73
+
+    PayrollSimulation:
+      type: object
+      required:
+        - id
+        - title
+        - gross_salary
+        - dependents
+        - discounts
+        - irrf_base
+        - total_discounts
+        - net_salary
+        - effective_rate
+        - calculation_year
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          nullable: true
+          example: April salary
+        gross_salary:
+          type: string
+          example: '5000.00'
+        dependents:
+          type: integer
+          example: 0
+        discounts:
+          $ref: '#/components/schemas/PayrollDiscounts'
+        irrf_base:
+          type: string
+          example: '4498.49'
+        total_discounts:
+          type: string
+          example: '938.18'
+        net_salary:
+          type: string
+          example: '4061.82'
+        effective_rate:
+          type: string
+          example: '0.187636'
+        calculation_year:
+          type: integer
+          example: 2026
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    TaxBracket:
+      type: object
+      required: [id, min_amount, max_amount, rate, deduction, sort_order]
+      properties:
+        id:
+          type: string
+          format: uuid
+        min_amount:
+          type: string
+          example: '2428.81'
+        max_amount:
+          type: string
+          nullable: true
+          example: '2826.65'
+        rate:
+          type: string
+          example: '0.075000'
+        deduction:
+          type: string
+          example: '182.16'
+        sort_order:
+          type: integer
+          example: 2
+
+    TaxRule:
+      type: object
+      required: [id, name, type, year, effective_from, effective_to, metadata, brackets]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: IRRF Monthly Table 2026
+        type:
+          type: string
+          enum: [INSS_EMPLOYEE, IRRF_MONTHLY]
+          example: IRRF_MONTHLY
+        year:
+          type: integer
+          example: 2026
+        effective_from:
+          type: string
+          format: date
+          example: '2026-01-01'
+        effective_to:
+          type: string
+          format: date
+          nullable: true
+          example: '2026-12-31'
+        metadata:
+          type: object
+          nullable: true
+          additionalProperties: true
+          example:
+            dependent_deduction: '189.59'
+            simplified_monthly_discount: '607.20'
+        brackets:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaxBracket'
+
+    PayrollSimulationCollection:
+      type: object
+      required: [data, links, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PayrollSimulation'
+        links:
+          type: object
+          additionalProperties: true
+        meta:
+          type: object
+          additionalProperties: true
+
+    TaxRuleCollection:
+      type: object
+      required: [data, links, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaxRule'
+        links:
+          type: object
+          additionalProperties: true
+        meta:
+          type: object
+          additionalProperties: true
+
+    DeleteResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          example: Simulation deleted successfully.
+
+    ValidationError:
+      type: object
+      required: [message, errors]
+      properties:
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    ErrorResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
