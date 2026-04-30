@@ -189,6 +189,63 @@ docs/openapi.yaml
 
 Open it with Swagger Editor, Redoc, Stoplight, or an IDE OpenAPI plugin. The spec includes request schemas, response schemas, validation errors, and examples.
 
+## Deploy on Render
+
+Use a Render **Web Service** with the **Docker** runtime. The project includes a root `Dockerfile` for Render deployment and keeps the existing local `docker-compose.yml` setup unchanged.
+
+Render settings:
+
+| Setting | Value |
+| --- | --- |
+| Service type | Web Service |
+| Runtime / Language | Docker |
+| Dockerfile Path | `./Dockerfile` |
+| Docker Context | `.` |
+| Build command | Leave empty; Render builds the Dockerfile |
+| Start command / Docker command | Leave empty; the Dockerfile starts Laravel |
+| Health check path | `/api/health` |
+
+Required environment variables:
+
+```text
+APP_NAME=Salario Claro API
+APP_ENV=production
+APP_KEY=base64:your-generated-app-key
+APP_DEBUG=false
+APP_URL=https://your-render-service.onrender.com
+APP_TIMEZONE=America/Sao_Paulo
+APP_LOCALE=pt_BR
+APP_FALLBACK_LOCALE=en
+APP_FAKER_LOCALE=pt_BR
+LOG_CHANNEL=stderr
+LOG_LEVEL=info
+DB_CONNECTION=pgsql
+DB_HOST=your-render-postgres-host
+DB_PORT=5432
+DB_DATABASE=your-render-postgres-database
+DB_USERNAME=your-render-postgres-user
+DB_PASSWORD=your-render-postgres-password
+CACHE_STORE=file
+QUEUE_CONNECTION=sync
+SESSION_DRIVER=file
+SESSION_LIFETIME=120
+MAIL_MAILER=log
+```
+
+Render provides `PORT` automatically. The Dockerfile starts Laravel with `php artisan serve --host=0.0.0.0 --port=${PORT:-10000}`.
+
+Generate `APP_KEY` before configuring Render:
+
+```bash
+php artisan key:generate --show
+```
+
+After the first deploy, run the database migrations and seeders from a Render shell or one-off job:
+
+```bash
+php artisan migrate --seed --force
+```
+
 ## Testing
 
 Run the full test suite:
