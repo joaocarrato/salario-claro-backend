@@ -37,13 +37,32 @@ final class PayrollSimulationTest extends TestCase
             ->assertOk()
             ->assertJsonPath('gross_salary', 5000)
             ->assertJsonPath('discounts.inss', 501.51)
-            ->assertJsonPath('discounts.irrf', 336.67)
-            ->assertJsonPath('irrf_base', 4498.49)
-            ->assertJsonPath('total_discounts', 838.18)
-            ->assertJsonPath('net_salary', 4161.82)
-            ->assertJsonPath('effective_rate', 0.167636)
+            ->assertJsonPath('discounts.irrf', 0)
+            ->assertJsonPath('irrf_base', 4392.8)
+            ->assertJsonPath('total_discounts', 501.51)
+            ->assertJsonPath('net_salary', 4498.49)
+            ->assertJsonPath('effective_rate', 0.100302)
             ->assertJsonPath('calculation_year', 2026)
             ->assertJsonCount(5, 'calculation_steps');
+
+        self::assertSame([
+            'gross_salary',
+            'discounts',
+            'irrf_base',
+            'total_discounts',
+            'net_salary',
+            'effective_rate',
+            'calculation_year',
+            'calculation_steps',
+        ], array_keys($response->json()));
+        self::assertSame([
+            'inss',
+            'irrf',
+            'transport',
+            'meal',
+            'health_plan',
+            'other',
+        ], array_keys($response->json('discounts')));
     }
 
     public function test_store_simulation(): void
@@ -63,17 +82,17 @@ final class PayrollSimulationTest extends TestCase
             ->assertJsonPath('data.gross_salary', '5000.00')
             ->assertJsonPath('data.discounts.inss', '501.51')
             ->assertJsonPath('data.discounts.transport', '100.00')
-            ->assertJsonPath('data.total_discounts', '938.18')
-            ->assertJsonPath('data.net_salary', '4061.82');
+            ->assertJsonPath('data.total_discounts', '601.51')
+            ->assertJsonPath('data.net_salary', '4398.49');
 
         $this->assertDatabaseHas('payroll_simulations', [
             'title' => 'April salary',
             'gross_salary' => '5000.00',
             'transport_discount' => '100.00',
             'inss_amount' => '501.51',
-            'irrf_amount' => '336.67',
-            'total_discounts' => '938.18',
-            'net_salary' => '4061.82',
+            'irrf_amount' => '0.00',
+            'total_discounts' => '601.51',
+            'net_salary' => '4398.49',
             'calculation_year' => 2026,
         ]);
     }
@@ -105,14 +124,14 @@ final class PayrollSimulationTest extends TestCase
         $response
             ->assertOk()
             ->assertJsonPath('first.gross_salary', 4500)
-            ->assertJsonPath('first.net_salary', 3828.57)
-            ->assertJsonPath('first.total_discounts', 671.43)
+            ->assertJsonPath('first.net_salary', 4072.97)
+            ->assertJsonPath('first.total_discounts', 427.03)
             ->assertJsonPath('second.gross_salary', 5200)
-            ->assertJsonPath('second.net_salary', 4294.84)
-            ->assertJsonPath('second.total_discounts', 905.16)
+            ->assertJsonPath('second.net_salary', 4597.87)
+            ->assertJsonPath('second.total_discounts', 602.13)
             ->assertJsonPath('difference.gross_salary', 700)
-            ->assertJsonPath('difference.net_salary', 466.27)
-            ->assertJsonPath('difference.total_discounts', 233.73);
+            ->assertJsonPath('difference.net_salary', 524.90)
+            ->assertJsonPath('difference.total_discounts', 175.10);
     }
 
     public function test_compare_payroll_validation_error_for_invalid_payload(): void
@@ -156,7 +175,7 @@ final class PayrollSimulationTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.id', $simulation->id)
             ->assertJsonPath('data.title', 'Show me')
-            ->assertJsonPath('data.discounts.irrf', '336.67');
+            ->assertJsonPath('data.discounts.irrf', '0.00');
     }
 
     public function test_delete_simulation(): void

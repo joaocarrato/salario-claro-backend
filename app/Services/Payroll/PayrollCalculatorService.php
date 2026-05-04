@@ -9,8 +9,9 @@ use App\DTO\PayrollResultDTO;
 
 final readonly class PayrollCalculatorService
 {
-    // TODO: Load this value from IRRF tax rule metadata instead of keeping it here.
-    private const float DEPENDENT_DEDUCTION = 189.59;
+    // Law-specific 2026 monthly IRRF deduction constants.
+    private const float IRRF_2026_DEPENDENT_DEDUCTION = 189.59;
+    private const float IRRF_2026_SIMPLIFIED_DISCOUNT_LIMIT = 607.20;
 
     public function __construct(
         private InssCalculator $inssCalculator,
@@ -21,8 +22,10 @@ final readonly class PayrollCalculatorService
     {
         $grossSalary = round($input->grossSalary, 2);
         $inss = $this->inssCalculator->calculate($grossSalary, $input->calculationYear);
-        $dependentDiscount = round($input->dependents * self::DEPENDENT_DEDUCTION, 2);
-        $irrfBase = round(max(0.0, $grossSalary - $inss - $dependentDiscount), 2);
+        $dependentDiscount = round($input->dependents * self::IRRF_2026_DEPENDENT_DEDUCTION, 2);
+        $legalDeductions = round($inss + $dependentDiscount, 2);
+        $irrfDeduction = max($legalDeductions, self::IRRF_2026_SIMPLIFIED_DISCOUNT_LIMIT);
+        $irrfBase = round(max(0.0, $grossSalary - $irrfDeduction), 2);
         $irrf = $this->irrfCalculator->calculate($irrfBase, $grossSalary, $input->calculationYear);
         $optionalDiscounts = round(
             $input->transportDiscount
@@ -63,7 +66,7 @@ final readonly class PayrollCalculatorService
                         'gross_salary' => $grossSalary,
                         'inss_amount' => $inss,
                         'dependents' => $input->dependents,
-                        'dependent_deduction' => self::DEPENDENT_DEDUCTION,
+                        'dependent_deduction' => self::IRRF_2026_DEPENDENT_DEDUCTION,
                         'base_amount' => $irrfBase,
                     ],
                 ],

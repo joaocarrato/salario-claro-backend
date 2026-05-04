@@ -35,11 +35,11 @@ final class PayrollCalculatorServiceTest extends TestCase
 
         self::assertInstanceOf(PayrollResultDTO::class, $result);
         self::assertSame(501.51, $result->inssAmount);
-        self::assertSame(4498.49, $result->irrfBase);
-        self::assertSame(336.67, $result->irrfAmount);
-        self::assertSame(838.18, $result->totalDiscounts);
-        self::assertSame(4161.82, $result->netSalary);
-        self::assertSame(0.167636, $result->effectiveRate);
+        self::assertSame(4392.80, $result->irrfBase);
+        self::assertSame(0.0, $result->irrfAmount);
+        self::assertSame(501.51, $result->totalDiscounts);
+        self::assertSame(4498.49, $result->netSalary);
+        self::assertSame(0.100302, $result->effectiveRate);
         self::assertSame(['INSS', 'IRRF base', 'IRRF', 'Optional discounts', 'Net salary'], array_column($result->steps, 'step'));
     }
 
@@ -79,9 +79,9 @@ final class PayrollCalculatorServiceTest extends TestCase
             calculationYear: 2026,
         ));
 
-        self::assertSame(1538.18, $result->totalDiscounts);
-        self::assertSame(3461.82, $result->netSalary);
-        self::assertSame(0.307636, $result->effectiveRate);
+        self::assertSame(1201.51, $result->totalDiscounts);
+        self::assertSame(3798.49, $result->netSalary);
+        self::assertSame(0.240302, $result->effectiveRate);
         self::assertSame(100.0, $result->transportDiscount);
         self::assertSame(250.0, $result->mealDiscount);
         self::assertSame(300.0, $result->healthPlanDiscount);
@@ -103,10 +103,10 @@ final class PayrollCalculatorServiceTest extends TestCase
         ));
 
         self::assertSame(4119.31, $result->irrfBase);
-        self::assertSame(251.35, $result->irrfAmount);
-        self::assertSame(752.86, $result->totalDiscounts);
-        self::assertSame(4247.14, $result->netSalary);
-        self::assertSame(0.150572, $result->effectiveRate);
+        self::assertSame(0.0, $result->irrfAmount);
+        self::assertSame(501.51, $result->totalDiscounts);
+        self::assertSame(4498.49, $result->netSalary);
+        self::assertSame(0.100302, $result->effectiveRate);
     }
 
     private function service(): PayrollCalculatorService

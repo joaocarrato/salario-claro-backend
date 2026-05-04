@@ -29,11 +29,11 @@ final class PayrollSimulationFactory extends Factory
             'health_plan_discount' => '0.00',
             'other_discounts' => '0.00',
             'inss_amount' => '501.51',
-            'irrf_base' => '4498.49',
-            'irrf_amount' => '336.67',
-            'total_discounts' => '838.18',
-            'net_salary' => '4161.82',
-            'effective_rate' => '0.167636',
+            'irrf_base' => '4392.80',
+            'irrf_amount' => '0.00',
+            'total_discounts' => '501.51',
+            'net_salary' => '4498.49',
+            'effective_rate' => '0.100302',
             'calculation_year' => 2026,
         ];
     }
