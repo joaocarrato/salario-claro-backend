@@ -8,7 +8,7 @@ This is a production-minded MVP for a junior backend developer portfolio. It foc
 
 - Net salary calculation
 - Progressive INSS calculation
-- Monthly IRRF calculation
+- Monthly IRRF calculation with the 2026 reduction rule
 - Optional discounts
 - Payroll simulation history
 - Salary proposal comparison
@@ -105,16 +105,16 @@ Response excerpt:
   "gross_salary": 5000,
   "discounts": {
     "inss": 501.51,
-    "irrf": 336.67,
+    "irrf": 0,
     "transport": 100,
     "meal": 250,
     "health_plan": 300,
     "other": 50
   },
   "irrf_base": 4498.49,
-  "total_discounts": 1538.18,
-  "net_salary": 3461.82,
-  "effective_rate": 0.307636,
+  "total_discounts": 1201.51,
+  "net_salary": 3798.49,
+  "effective_rate": 0.240302,
   "calculation_year": 2026,
   "calculation_steps": [
     {
@@ -126,6 +126,12 @@ Response excerpt:
   ]
 }
 ```
+
+## IRRF 2026 Behavior
+
+For 2026 calculations, the API first calculates the regular IRRF using the progressive monthly table. Then it applies the 2026 monthly tax reduction.
+
+Because of this, salaries with monthly taxable income up to R$ 5,000 may return `"irrf": 0`, even when the regular progressive table would initially calculate a positive tax amount. From R$ 5,000.01 to R$ 7,350.00, the reduction is partial. Above R$ 7,350.00, the extra 2026 reduction does not apply.
 
 ## Example: Compare Salaries
 
@@ -161,20 +167,20 @@ Response excerpt:
 {
   "first": {
     "gross_salary": 4500,
-    "total_discounts": 671.43,
-    "net_salary": 3828.57,
-    "effective_rate": 0.149207
+    "total_discounts": 431.51,
+    "net_salary": 4068.49,
+    "effective_rate": 0.095891
   },
   "second": {
     "gross_salary": 5200,
-    "total_discounts": 905.16,
-    "net_salary": 4294.84,
-    "effective_rate": 0.174069
+    "total_discounts": 618.89,
+    "net_salary": 4581.11,
+    "effective_rate": 0.119017
   },
   "difference": {
     "gross_salary": 700,
-    "net_salary": 466.27,
-    "total_discounts": 233.73
+    "net_salary": 512.62,
+    "total_discounts": 187.38
   }
 }
 ```
@@ -257,7 +263,7 @@ docker compose exec app php artisan test
 The tests cover:
 
 - INSS progressive calculation
-- IRRF monthly calculation
+- IRRF monthly calculation, including the 2026 reduction rule
 - Payroll orchestration
 - Tax rule resolution
 - Form request validation
